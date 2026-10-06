@@ -1,0 +1,6 @@
+{
+  "name": "Job Engine",
+  "description": "Discover, filter, and post jobs with smart real-time search, industry alerts, and Firestore integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
