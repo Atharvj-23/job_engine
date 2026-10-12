@@ -396,6 +396,10 @@ class JobPulseRepository(
   suspend fun submitApplication(app: JobApplicationEntity): Long = withContext(Dispatchers.IO) {
     val id = appDao.insertApplication(app)
     jobDao.incrementApplicantCount(app.jobId)
+    // Synchronize application to Firestore
+    CoroutineScope(Dispatchers.IO).launch {
+      com.example.data.cloud.FirestoreJobSyncService.uploadApplicationToCloud(app.copy(id = id))
+    }
     id
   }
 

@@ -114,7 +114,6 @@ fun LoginScreen(
   var errorMessage by remember { mutableStateOf<String?>(null) }
 
   val isEmployer = selectedRole == "EMPLOYER"
-  val isAdmin = selectedRole == "ADMIN"
   val isSeeker = selectedRole == "SEEKER"
 
   Surface(
@@ -182,7 +181,7 @@ fun LoginScreen(
 
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
       ) {
         // Job Seeker Card
         Card(
@@ -201,12 +200,12 @@ fun LoginScreen(
             .testTag("role_selector_seeker")
         ) {
           Column(
-            modifier = Modifier.padding(10.dp),
+            modifier = Modifier.padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
           ) {
             Box(
               modifier = Modifier
-                .size(36.dp)
+                .size(44.dp)
                 .clip(CircleShape)
                 .background(if (isSeeker) JobPulseBlue.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant),
               contentAlignment = Alignment.Center
@@ -215,22 +214,15 @@ fun LoginScreen(
                 imageVector = Icons.Default.PersonSearch,
                 contentDescription = null,
                 tint = if (isSeeker) JobPulseBlue else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
               text = "Job Seeker",
               fontWeight = FontWeight.Bold,
-              fontSize = 12.sp,
+              fontSize = 15.sp,
               color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-              text = "Apply & AI",
-              fontSize = 10.sp,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              textAlign = TextAlign.Center
             )
           }
         }
@@ -252,12 +244,12 @@ fun LoginScreen(
             .testTag("role_selector_employer")
         ) {
           Column(
-            modifier = Modifier.padding(10.dp),
+            modifier = Modifier.padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
           ) {
             Box(
               modifier = Modifier
-                .size(36.dp)
+                .size(44.dp)
                 .clip(CircleShape)
                 .background(if (isEmployer) JobPulsePurple.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant),
               contentAlignment = Alignment.Center
@@ -266,73 +258,15 @@ fun LoginScreen(
                 imageVector = Icons.Default.BusinessCenter,
                 contentDescription = null,
                 tint = if (isEmployer) JobPulsePurple else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
               )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
               text = "Employer",
               fontWeight = FontWeight.Bold,
-              fontSize = 12.sp,
+              fontSize = 15.sp,
               color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-              text = "Post & Hire",
-              fontSize = 10.sp,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              textAlign = TextAlign.Center
-            )
-          }
-        }
-
-        // Admin Card
-        Card(
-          onClick = {
-            selectedRole = "ADMIN"
-            errorMessage = null
-          },
-          shape = RoundedCornerShape(16.dp),
-          colors = CardDefaults.cardColors(
-            containerColor = if (isAdmin) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-            else MaterialTheme.colorScheme.surface
-          ),
-          border = if (isAdmin) ButtonDefaults.outlinedButtonBorder(enabled = true) else null,
-          modifier = Modifier
-            .weight(1f)
-            .testTag("role_selector_admin")
-        ) {
-          Column(
-            modifier = Modifier.padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-          ) {
-            Box(
-              modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(if (isAdmin) JobPulseEmerald.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant),
-              contentAlignment = Alignment.Center
-            ) {
-              Icon(
-                imageVector = Icons.Default.AdminPanelSettings,
-                contentDescription = null,
-                tint = if (isAdmin) JobPulseEmerald else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-              )
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-              text = "Admin",
-              fontWeight = FontWeight.Bold,
-              fontSize = 12.sp,
-              color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-              text = "Full Access",
-              fontSize = 10.sp,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              textAlign = TextAlign.Center
             )
           }
         }
@@ -346,42 +280,26 @@ fun LoginScreen(
           .fillMaxWidth()
           .clip(RoundedCornerShape(12.dp))
           .background(
-            when {
-              isAdmin -> JobPulseEmerald.copy(alpha = 0.1f)
-              isEmployer -> JobPulsePurple.copy(alpha = 0.1f)
-              else -> JobPulseBlue.copy(alpha = 0.1f)
-            }
+            if (isEmployer) JobPulsePurple.copy(alpha = 0.1f)
+            else JobPulseBlue.copy(alpha = 0.1f)
           )
           .padding(horizontal = 12.dp, vertical = 8.dp)
       ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
           Icon(
-            imageVector = when {
-              isAdmin -> Icons.Default.AdminPanelSettings
-              isEmployer -> Icons.Default.Business
-              else -> Icons.Default.Work
-            },
+            imageVector = if (isEmployer) Icons.Default.Business else Icons.Default.Work,
             contentDescription = null,
-            tint = when {
-              isAdmin -> JobPulseEmerald
-              isEmployer -> JobPulsePurple
-              else -> JobPulseBlue
-            },
+            tint = if (isEmployer) JobPulsePurple else JobPulseBlue,
             modifier = Modifier.size(16.dp)
           )
           Spacer(modifier = Modifier.width(8.dp))
           Text(
-            text = when {
-              isAdmin -> "Admin Mode: Full access to manage all openings, view all candidates, and configure platform settings."
-              isEmployer -> "Employer Mode: Create postings, set compensation, sync to Firestore, and review candidates."
-              else -> "Job Seeker Mode: View verified postings, search & filter, ATS resume analysis, and apply."
-            },
+            text = if (isEmployer)
+              "Employer Mode: Create postings, set compensation, sync to Firestore, and review candidates."
+            else
+              "Job Seeker Mode: View verified postings, search & filter, ATS resume analysis, and apply.",
             fontSize = 12.sp,
-            color = when {
-              isAdmin -> JobPulseEmerald
-              isEmployer -> JobPulsePurple
-              else -> JobPulseBlue
-            },
+            color = if (isEmployer) JobPulsePurple else JobPulseBlue,
             fontWeight = FontWeight.Medium
           )
         }
@@ -563,75 +481,25 @@ fun LoginScreen(
         }
       }
 
-      Spacer(modifier = Modifier.height(14.dp))
+      Spacer(modifier = Modifier.height(16.dp))
 
-      // 6. Fast 1-Click Demo Profiles (For Instant Testing)
-      Text(
-        text = "OR QUICK DEMO LOGIN",
-        style = MaterialTheme.typography.labelSmall,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 1.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-      )
-
-      Spacer(modifier = Modifier.height(8.dp))
-
+      // Divider
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        verticalAlignment = Alignment.CenterVertically
       ) {
-        OutlinedButton(
-          onClick = {
-            viewModel.loginDemoSeeker()
-            onLoginSuccess()
-          },
-          shape = RoundedCornerShape(10.dp),
-          contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-          modifier = Modifier
-            .weight(1f)
-            .testTag("demo_login_seeker_btn")
-        ) {
-          Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(13.dp), tint = JobPulseBlue)
-          Spacer(modifier = Modifier.width(3.dp))
-          Text("Seeker", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-        }
-
-        OutlinedButton(
-          onClick = {
-            viewModel.loginDemoEmployer()
-            onLoginSuccess()
-          },
-          shape = RoundedCornerShape(10.dp),
-          contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-          modifier = Modifier
-            .weight(1f)
-            .testTag("demo_login_employer_btn")
-        ) {
-          Icon(Icons.Default.BusinessCenter, contentDescription = null, modifier = Modifier.size(13.dp), tint = JobPulsePurple)
-          Spacer(modifier = Modifier.width(3.dp))
-          Text("Employer", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-        }
-
-        OutlinedButton(
-          onClick = {
-            viewModel.loginDemoAdmin()
-            onLoginSuccess()
-          },
-          shape = RoundedCornerShape(10.dp),
-          contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-          modifier = Modifier
-            .weight(1f)
-            .testTag("demo_login_admin_btn")
-        ) {
-          Icon(Icons.Default.AdminPanelSettings, contentDescription = null, modifier = Modifier.size(13.dp), tint = JobPulseEmerald)
-          Spacer(modifier = Modifier.width(3.dp))
-          Text("Admin", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-        }
+        HorizontalDivider(modifier = Modifier.weight(1f))
+        Text(
+          text = "  OR  ",
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        HorizontalDivider(modifier = Modifier.weight(1f))
       }
 
-      Spacer(modifier = Modifier.height(12.dp))
+      Spacer(modifier = Modifier.height(16.dp))
 
-      // 7. Google 1-Click Authentication
+      // Google 1-Click Authentication
       OutlinedButton(
         onClick = {
           isLoading = true

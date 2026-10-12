@@ -378,4 +378,34 @@ class ExampleRobolectricTest {
     assertNotNull(viewModel.currentUser.value)
     assertEquals(1L, viewModel.currentUserId.value)
   }
+
+  @Test
+  fun `verify AuthViewModel manages authentication state and exposes login status`() = runBlocking {
+    val application = ApplicationProvider.getApplicationContext<Application>()
+    val authViewModel = com.example.ui.viewmodel.AuthViewModel(application)
+    assertNotNull(authViewModel.loginStatusText.value)
+    assertNotNull(authViewModel.isLoggedIn.value)
+  }
+
+  @Test
+  fun `verify JobListing data class and Firestore map serialization`() {
+    val listing = com.example.data.model.JobListing(
+      title = "Robotics Formulation Engineer",
+      company = "BioMech Inc",
+      industry = "Engineering",
+      location = "Cambridge, MA",
+      salaryText = "$140,000 - $165,000 / yr",
+      salaryMin = 140000,
+      salaryMax = 165000,
+      description = "Lead automated drug delivery systems."
+    )
+    val map = listing.toFirestoreMap()
+    assertEquals("Robotics Formulation Engineer", map["title"])
+    assertEquals("BioMech Inc", map["company"])
+
+    val restored = com.example.data.model.JobListing.fromFirestoreMap("doc-123", map)
+    assertEquals("doc-123", restored.cloudId)
+    assertEquals(listing.title, restored.title)
+    assertEquals(listing.salaryMin, restored.salaryMin)
+  }
 }

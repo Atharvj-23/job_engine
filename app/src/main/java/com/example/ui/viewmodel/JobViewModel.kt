@@ -258,6 +258,12 @@ class JobViewModel(application: Application) : AndroidViewModel(application) {
     _selectedJobListing.value = listing
   }
 
+  // Basic Firestore Job Repository for reading and writing job postings
+  val firestoreJobRepository = com.example.data.cloud.FirestoreJobRepository()
+  val firestoreJobListings: StateFlow<List<com.example.data.model.JobListing>> = firestoreJobRepository
+    .getJobListings()
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
   // Firebase & Google Auth integration
   val firebaseUser: StateFlow<FirebaseUser?> = FirebaseAuthManager.currentUserState
   val googleSession: StateFlow<GoogleUserSession?> = FirebaseAuthManager.googleUserSession

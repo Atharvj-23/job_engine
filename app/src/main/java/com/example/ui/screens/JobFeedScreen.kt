@@ -58,6 +58,9 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,6 +72,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.example.data.model.JobListing
 import com.example.data.model.JobListingEntity
 import com.example.ui.components.JobFeedEmptyState
 import com.example.ui.components.JobSearchBar
@@ -94,6 +98,8 @@ fun JobFeedScreen(
   onPostJobClick: (() -> Unit)? = null
 ) {
   val jobListings by viewModel.filteredJobListings.collectAsState()
+  val firestoreJobListings by viewModel.firestoreJobListings.collectAsState()
+  var showLiveFirestoreOnly by remember { mutableStateOf(false) }
   val searchQuery by viewModel.searchQuery.collectAsState()
   val selectedIndustry by viewModel.selectedIndustry.collectAsState()
   val selectedLocation by viewModel.selectedLocation.collectAsState()
@@ -153,71 +159,212 @@ fun JobFeedScreen(
 
     // 2. Feed Header with Count & Department Alert CTA
     item {
-      Row(
+      Column(
         modifier = Modifier
           .fillMaxWidth()
-          .padding(horizontal = 16.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+          .padding(horizontal = 16.dp, vertical = 6.dp)
       ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Icon(
-            Icons.Default.DynamicFeed,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
-          )
-          Spacer(modifier = Modifier.width(6.dp))
-          Text(
-            text = "Job Feed (${jobListings.size})",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-          )
-          Spacer(modifier = Modifier.width(4.dp))
-          IconButton(
-            onClick = { viewModel.refreshJobListings() },
-            modifier = Modifier
-              .size(32.dp)
-              .testTag("feed_manual_refresh_btn")
-          ) {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-              Icons.Default.Refresh,
-              contentDescription = "Refresh Feed",
+              Icons.Default.DynamicFeed,
+              contentDescription = null,
               tint = MaterialTheme.colorScheme.primary,
-              modifier = Modifier.size(18.dp)
+              modifier = Modifier.size(20.dp)
             )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+              text = if (showLiveFirestoreOnly) "Firestore Postings (${firestoreJobListings.size})" else "Job Feed (${jobListings.size})",
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            IconButton(
+              onClick = { viewModel.refreshJobListings() },
+              modifier = Modifier
+                .size(32.dp)
+                .testTag("feed_manual_refresh_btn")
+            ) {
+              Icon(
+                Icons.Default.Refresh,
+                contentDescription = "Refresh Feed",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+              )
+            }
+          }
+
+          if (selectedIndustry != "All") {
+            Row(
+              modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .clickable { onSaveIndustryAlert(selectedIndustry) }
+                .padding(horizontal = 10.dp, vertical = 5.dp),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Icon(
+                Icons.Default.NotificationsActive,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(14.dp)
+              )
+              Spacer(modifier = Modifier.width(4.dp))
+              Text(
+                "Alert for $selectedIndustry",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+              )
+            }
           }
         }
 
-        if (selectedIndustry != "All") {
-          Row(
-            modifier = Modifier
-              .clip(RoundedCornerShape(8.dp))
-              .background(MaterialTheme.colorScheme.primaryContainer)
-              .clickable { onSaveIndustryAlert(selectedIndustry) }
-              .padding(horizontal = 10.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically
-          ) {
-            Icon(
-              Icons.Default.NotificationsActive,
-              contentDescription = null,
-              tint = MaterialTheme.colorScheme.onPrimaryContainer,
-              modifier = Modifier.size(14.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-              "Alert for $selectedIndustry",
-              fontSize = 12.sp,
-              fontWeight = FontWeight.Bold,
-              color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-          }
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Source Switcher Chips
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          FilterChip(
+            selected = !showLiveFirestoreOnly,
+            onClick = { showLiveFirestoreOnly = false },
+            label = { Text("Standard Feed (${jobListings.size})", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
+            modifier = Modifier.testTag("feed_mode_standard")
+          )
+
+          FilterChip(
+            selected = showLiveFirestoreOnly,
+            onClick = { showLiveFirestoreOnly = true },
+            leadingIcon = {
+              Icon(
+                Icons.Default.CloudDone,
+                contentDescription = null,
+                tint = if (showLiveFirestoreOnly) JobPulseTeal else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(14.dp)
+              )
+            },
+            label = { Text("Firestore Live (${firestoreJobListings.size})", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
+            modifier = Modifier.testTag("feed_mode_firestore")
+          )
         }
       }
     }
 
     // 3. Feed Items
-    if (jobListings.isEmpty()) {
+    if (showLiveFirestoreOnly) {
+      if (firestoreJobListings.isEmpty()) {
+        item {
+          Card(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            shape = RoundedCornerShape(16.dp)
+          ) {
+            Column(
+              modifier = Modifier.padding(24.dp),
+              horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+              Icon(Icons.Default.CloudDone, contentDescription = null, tint = JobPulseTeal, modifier = Modifier.size(44.dp))
+              Spacer(modifier = Modifier.height(10.dp))
+              Text("No Firestore Live Postings Found", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+              Spacer(modifier = Modifier.height(6.dp))
+              Text(
+                "When employers post jobs to Cloud Firestore, they stream automatically into this live collection. Switch to Standard Feed to view cached and synced jobs.",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+              )
+              Spacer(modifier = Modifier.height(12.dp))
+              OutlinedButton(onClick = { showLiveFirestoreOnly = false }) {
+                Text("Show Standard Feed")
+              }
+            }
+          }
+        }
+      } else {
+        items(firestoreJobListings, key = { "firestore_doc_${it.cloudId ?: it.title}" }) { docListing ->
+          val mockEntity = JobListingEntity(
+            id = docListing.id,
+            title = docListing.title,
+            company = docListing.company,
+            industry = docListing.industry,
+            location = docListing.location,
+            experienceLevel = docListing.experienceLevel,
+            isRemote = docListing.isRemote,
+            jobType = docListing.jobType,
+            salaryText = docListing.salaryText,
+            description = docListing.description,
+            requirements = docListing.requirements
+          )
+          ElevatedCard(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(horizontal = 16.dp, vertical = 6.dp)
+              .clickable { onJobListingClick(mockEntity) }
+              .testTag("firestore_feed_item_${docListing.cloudId ?: docListing.title}"),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+          ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+              Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+              ) {
+                Box(
+                  modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(JobPulseTeal.copy(alpha = 0.15f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                  Text(
+                    text = docListing.industry,
+                    color = JobPulseTeal,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp
+                  )
+                }
+
+                Row(
+                  verticalAlignment = Alignment.CenterVertically,
+                  modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(JobPulseTeal.copy(alpha = 0.15f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                  Icon(Icons.Default.CloudDone, contentDescription = null, tint = JobPulseTeal, modifier = Modifier.size(12.dp))
+                  Spacer(modifier = Modifier.width(3.dp))
+                  Text("Firestore Doc", color = JobPulseTeal, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+              }
+
+              Spacer(modifier = Modifier.height(8.dp))
+              Text(docListing.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+              Text(
+                "${docListing.company} • ${docListing.location}${if (docListing.isRemote) " (Remote)" else ""}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+              )
+              Spacer(modifier = Modifier.height(8.dp))
+              Text(
+                docListing.salaryText.ifBlank { "Competitive Compensation" },
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = JobPulseAmber
+              )
+            }
+          }
+        }
+      }
+    } else if (jobListings.isEmpty()) {
       item {
         JobFeedEmptyState(
           searchQuery = searchQuery,

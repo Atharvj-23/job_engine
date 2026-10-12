@@ -664,6 +664,17 @@ fun EmployerDashboardScreen(
 
         2 -> {
           // TAB 2: Applicants Pipeline
+          var applicantStatusFilter by remember { mutableStateOf("ALL") }
+          val filteredApplicants = when (applicantStatusFilter) {
+            "ALL" -> applications
+            "APPLIED" -> applications.filter { it.status.uppercase() in listOf("APPLIED", "SUBMITTED") }
+            "REVIEWING" -> applications.filter { it.status.uppercase() == "REVIEWING" }
+            "INTERVIEW" -> applications.filter { it.status.uppercase() == "INTERVIEW" }
+            "OFFERED" -> applications.filter { it.status.uppercase() in listOf("ACCEPTED", "OFFERED") }
+            "REJECTED" -> applications.filter { it.status.uppercase() == "REJECTED" }
+            else -> applications
+          }
+
           if (applications.isEmpty()) {
             Box(
               modifier = Modifier
@@ -672,32 +683,62 @@ fun EmployerDashboardScreen(
               contentAlignment = Alignment.Center
             ) {
               Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.People, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
-                Spacer(modifier = Modifier.height(12.dp))
+                Icon(Icons.Default.People, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(52.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Text("No Applicants Yet", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                  "Applications submitted by candidates from the Job Feed will appear here for review.",
+                  "Applications submitted by candidates from the Job Feed will appear here for hiring pipeline review.",
                   style = MaterialTheme.typography.bodySmall,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                  textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
               }
             }
           } else {
-            LazyColumn(
-              modifier = Modifier
-                .fillMaxSize()
-                .testTag("employer_applicants_list"),
-              contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 88.dp),
-              verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-              items(applications, key = { "applicant_${it.id}" }) { app ->
-                val jobTitle = postedJobs.find { it.id == app.jobId }?.title ?: "Position #${app.jobId}"
-                ApplicantCard(
-                  application = app,
-                  jobTitle = jobTitle,
-                  onUpdateStatus = { newStatus -> onUpdateApplicantStatus(app.id, newStatus) }
+            Column(modifier = Modifier.fillMaxSize()) {
+              // Pipeline stage filter chips
+              LazyRow(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+              ) {
+                val stages = listOf(
+                  "ALL" to "All (${applications.size})",
+                  "APPLIED" to "Applied (${applications.count { it.status.uppercase() in listOf("APPLIED", "SUBMITTED") }})",
+                  "REVIEWING" to "Reviewing (${applications.count { it.status.uppercase() == "REVIEWING" }})",
+                  "INTERVIEW" to "Interview (${applications.count { it.status.uppercase() == "INTERVIEW" }})",
+                  "OFFERED" to "Offered (${applications.count { it.status.uppercase() in listOf("ACCEPTED", "OFFERED") }})",
+                  "REJECTED" to "Rejected (${applications.count { it.status.uppercase() == "REJECTED" }})"
                 )
+                items(stages) { (code, label) ->
+                  FilterChip(
+                    selected = applicantStatusFilter == code,
+                    onClick = { applicantStatusFilter = code },
+                    label = { Text(label, fontSize = 11.sp, fontWeight = FontWeight.Medium) },
+                    modifier = Modifier.testTag("applicant_filter_$code")
+                  )
+                }
+              }
+
+              LazyColumn(
+                modifier = Modifier
+                  .fillMaxSize()
+                  .testTag("employer_applicants_list"),
+                contentPadding = PaddingValues(16.dp, 6.dp, 16.dp, 88.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+              ) {
+                items(filteredApplicants, key = { "applicant_${it.id}" }) { app ->
+                  val jobTitle = postedJobs.find { it.id == app.jobId }?.title
+                    ?: viewModel?.allJobs?.value?.find { it.id == app.jobId }?.title
+                    ?: "Position #${app.jobId}"
+                  ApplicantCard(
+                    application = app,
+                    jobTitle = jobTitle,
+                    onUpdateStatus = { newStatus -> onUpdateApplicantStatus(app.id, newStatus) }
+                  )
+                }
               }
             }
           }
@@ -844,45 +885,66 @@ private fun ApplicantCard(
   jobTitle: String,
   onUpdateStatus: (String) -> Unit
 ) {
-  val statusColor = when (application.status) {
-    "ACCEPTED" -> JobPulseEmerald
+  val statusUpper = application.status.uppercase()
+  val statusColor = when (statusUpper) {
+    "ACCEPTED", "OFFERED" -> JobPulseEmerald
     "INTERVIEW" -> JobPulseBlue
+    "REVIEWING" -> JobPulsePurple
     "REJECTED" -> MaterialTheme.colorScheme.error
     else -> JobPulseAmber
   }
 
   ElevatedCard(
-    shape = RoundedCornerShape(14.dp),
+    shape = RoundedCornerShape(16.dp),
     colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-    modifier = Modifier.fillMaxWidth()
+    modifier = Modifier
+      .fillMaxWidth()
+      .testTag("applicant_card_${application.id}")
   ) {
-    Column(modifier = Modifier.padding(14.dp)) {
+    Column(modifier = Modifier.padding(16.dp)) {
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Column {
-          Text(
-            text = application.applicantName,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-          )
-          Text(
-            text = application.applicantHeadline.ifBlank { application.applicantEmail },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-          )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+          Box(
+            modifier = Modifier
+              .size(42.dp)
+              .clip(CircleShape)
+              .background(JobPulseBlue.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+          ) {
+            Text(
+              text = application.applicantName.take(1).uppercase().ifBlank { "A" },
+              fontWeight = FontWeight.Bold,
+              fontSize = 18.sp,
+              color = JobPulseBlue
+            )
+          }
+          Spacer(modifier = Modifier.width(10.dp))
+          Column {
+            Text(
+              text = application.applicantName,
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Bold
+            )
+            Text(
+              text = application.applicantHeadline.ifBlank { application.applicantEmail },
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+          }
         }
 
         Box(
           modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(statusColor.copy(alpha = 0.15f))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
         ) {
           Text(
-            application.status,
+            text = application.status,
             color = statusColor,
             fontWeight = FontWeight.Bold,
             fontSize = 11.sp
@@ -890,50 +952,91 @@ private fun ApplicantCard(
         }
       }
 
-      Spacer(modifier = Modifier.height(8.dp))
+      Spacer(modifier = Modifier.height(10.dp))
 
-      Text(
-        text = "Applied For: $jobTitle",
-        style = MaterialTheme.typography.bodySmall,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.primary
-      )
-
-      if (application.resumeNote.isNotBlank()) {
-        Spacer(modifier = Modifier.height(6.dp))
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+          .fillMaxWidth()
+          .clip(RoundedCornerShape(8.dp))
+          .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+          .padding(horizontal = 10.dp, vertical = 6.dp)
+      ) {
+        Icon(Icons.Default.Work, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(15.dp))
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
-          text = "\"${application.resumeNote}\"",
+          text = "Applied For: $jobTitle",
           style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant
+          fontWeight = FontWeight.SemiBold,
+          color = MaterialTheme.colorScheme.onSurface
         )
       }
 
-      Spacer(modifier = Modifier.height(10.dp))
+      if (application.applicantEmail.isNotBlank()) {
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(13.dp))
+          Spacer(modifier = Modifier.width(4.dp))
+          Text(
+            text = application.applicantEmail,
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+          )
+        }
+      }
+
+      if (application.resumeNote.isNotBlank()) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .padding(10.dp)
+        ) {
+          Column {
+            Text("Cover Note / Message:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+              text = "\"${application.resumeNote}\"",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+          }
+        }
+      }
+
+      Spacer(modifier = Modifier.height(12.dp))
       HorizontalDivider()
       Spacer(modifier = Modifier.height(8.dp))
 
-      // Status update actions
+      // Pipeline Stage Status update actions
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Text("Change Status:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Stage:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
           FilterChip(
-            selected = application.status == "REVIEWING",
+            selected = statusUpper == "REVIEWING",
             onClick = { onUpdateStatus("REVIEWING") },
             label = { Text("Review", fontSize = 10.sp) }
           )
           FilterChip(
-            selected = application.status == "INTERVIEW",
+            selected = statusUpper == "INTERVIEW",
             onClick = { onUpdateStatus("INTERVIEW") },
             label = { Text("Interview", fontSize = 10.sp) }
           )
           FilterChip(
-            selected = application.status == "ACCEPTED",
-            onClick = { onUpdateStatus("ACCEPTED") },
+            selected = statusUpper in listOf("ACCEPTED", "OFFERED"),
+            onClick = { onUpdateStatus("OFFERED") },
             label = { Text("Offer", fontSize = 10.sp) }
+          )
+          FilterChip(
+            selected = statusUpper == "REJECTED",
+            onClick = { onUpdateStatus("REJECTED") },
+            label = { Text("Reject", fontSize = 10.sp) }
           )
         }
       }

@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "jobs": {
+      "title": "Jobs",
+      "description": "Active job listings across Engineering, Pharmacy, Healthcare, Tech and Biotech.",
+      "fields": {
+        "title": { "type": "string", "description": "Job title" },
+        "company": { "type": "string", "description": "Hiring company name" },
+        "industry": { "type": "string", "description": "Job department / industry" },
+        "location": { "type": "string", "description": "Job location" },
+        "isRemote": { "type": "boolean", "description": "Whether job is 100% remote" },
+        "salaryText": { "type": "string", "description": "Salary display string" },
+        "salaryMin": { "type": "number", "description": "Minimum annual compensation" },
+        "salaryMax": { "type": "number", "description": "Maximum annual compensation" },
+        "description": { "type": "string", "description": "Full job description" },
+        "employerEmail": { "type": "string", "description": "Hiring manager email" },
+        "isActive": { "type": "boolean", "description": "Whether opening is actively accepting applications" },
+        "postedDateMillis": { "type": "number", "description": "Timestamp of creation" }
+      }
+    },
+    "applications": {
+      "title": "Job Applications",
+      "description": "Candidate applications submitted to job postings.",
+      "fields": {
+        "jobId": { "type": "string", "description": "Associated job id" },
+        "applicantEmail": { "type": "string", "description": "Applicant email" },
+        "applicantName": { "type": "string", "description": "Applicant name" },
+        "status": { "type": "string", "description": "Status in hiring pipeline: SUBMITTED, REVIEWING, INTERVIEW, OFFERED, REJECTED" },
+        "coverNote": { "type": "string", "description": "Candidate cover note" },
+        "submittedAtMillis": { "type": "number", "description": "Submission timestamp" }
+      }
+    },
+    "user_profiles": {
+      "title": "User Profiles",
+      "description": "Seeker and employer profiles.",
+      "fields": {
+        "email": { "type": "string", "description": "User email address" },
+        "fullName": { "type": "string", "description": "Full name" },
+        "role": { "type": "string", "description": "SEEKER, EMPLOYER, or ADMIN" },
+        "industry": { "type": "string", "description": "Target industry" },
+        "minExpectedSalary": { "type": "number", "description": "Minimum expected salary" }
+      }
+    }
+  }
+}

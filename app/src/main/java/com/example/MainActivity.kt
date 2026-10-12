@@ -441,7 +441,10 @@ fun JobPulseApp(
             if (isEmployer) {
               EmployerHubScreen(
                 employerUser = activeUser,
-                postedJobs = employerPostedJobs.ifEmpty { allJobs.filter { it.employerEmail == activeUser.email } },
+                postedJobs = employerPostedJobs.ifEmpty {
+                  allJobs.filter { it.employerEmail.equals(activeUser.email, ignoreCase = true) || it.company.equals(activeUser.companyName, ignoreCase = true) }
+                    .ifEmpty { allJobs }
+                },
                 applications = allApplicantsForEmployer,
                 viewModel = viewModel,
                 onPostJobClick = {

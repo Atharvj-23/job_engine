@@ -2,6 +2,7 @@ package com.example.data.cloud
 
 import android.util.Log
 import com.example.data.model.JobEntity
+import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -14,7 +15,13 @@ object FirestoreJobSyncService {
 
   private val firestore: FirebaseFirestore?
     get() = try {
-      FirebaseFirestore.getInstance()
+      val app = FirebaseApp.getInstance()
+      val dbId = "ai-studio-android-jobengin-c66c8069-7c44-48b8-ad92-73596dc8cd97"
+      try {
+        FirebaseFirestore.getInstance(app, dbId)
+      } catch (namedEx: Exception) {
+        FirebaseFirestore.getInstance(app)
+      }
     } catch (e: Exception) {
       Log.w(TAG, "FirebaseFirestore instance not ready or unconfigured: ${e.message}")
       null
@@ -128,6 +135,27 @@ object FirestoreJobSyncService {
     } catch (e: Exception) {
       Log.w(TAG, "Failed to attach Firestore listener: ${e.message}")
       null
+    }
+  }
+
+  suspend fun uploadApplicationToCloud(app: com.example.data.model.JobApplicationEntity): Result<String> {
+    val db = firestore ?: return Result.failure(IllegalStateException("Firestore not initialized"))
+    return try {
+      val map = mapOf(
+        "jobId" to app.jobId,
+        "applicantId" to app.applicantId,
+        "applicantName" to app.applicantName,
+        "applicantEmail" to app.applicantEmail,
+        "applicantHeadline" to app.applicantHeadline,
+        "resumeNote" to app.resumeNote,
+        "status" to app.status,
+        "appliedDateMillis" to app.appliedAtMillis
+      )
+      val docRef = db.collection("applications").add(map).await()
+      Result.success(docRef.id)
+    } catch (e: Exception) {
+      Log.w(TAG, "Failed to upload application to Firestore: ${e.message}")
+      Result.failure(e)
     }
   }
 }
